@@ -5,7 +5,22 @@ g.getmeta = function(datafile,desiredtz = c(),windowsizes = c(5,900,3600),
                      do.hfenplus=FALSE,do.teLindert2013=FALSE,
                      do.anglex=FALSE,do.angley=FALSE,do.anglez=FALSE,do.enmoa=FALSE,
                      lb = 0.2, hb = 15,  n = 4,meantempcal=c(),chunksize=c(),selectdaysfile=c(),
-                     outputdir=c(),outputfolder=c(),dayborder=0) {
+                     dayborder=0,...) {
+  
+  #get input variables
+  input = list(...)
+  if (length(input) > 0) {
+    for (i in 1:length(names(input))) {
+      txt = paste(names(input)[i],"=",input[i],sep="")
+      if (class(unlist(input[i])) == "character") {
+        txt = paste(names(input)[i],"='",unlist(input[i]),"'",sep="")
+      }
+      eval(parse(text=txt))
+    }
+  }
+  if (length(which(ls() == "outputdir")) != 0) outputdir = input$outputdir
+  if (length(which(ls() == "outputfolder")) != 0) outputfolder = input$outputfolder
+  
   
   if (length(chunksize) == 0) chunksize = 1
   if (chunksize > 1) chunksize = 1
@@ -146,21 +161,21 @@ g.getmeta = function(datafile,desiredtz = c(),windowsizes = c(5,900,3600),
         }
         cat("\nEnd of file reached\n")
       }
-#     } else if (mon == 4 & dformat == 3) {
-#       try(expr={P = g.wavread(binfile=datafile,(blocksize*(i-1)),(blocksize*i))},silent=TRUE)
-#       if (length(P) > 1) {
-#         if (nrow(P$rawxyz) < ((sf*ws*2)+1) & i == 1) {
-#           P = c() ; switchoffLD = 1 #added 30-6-2012
-#           cat("\nError: data too short for doing non-wear detection 1\n")		
-#           filetooshort = TRUE
-#         }
-#       } else {
-#         P = c()
-#         if (i == 1) {
-#           filecorrupt = TRUE
-#         }
-#         cat("\nEnd of file reached\n")
-#       }
+    } else if (mon == 4 & dformat == 3) {
+      try(expr={P = g.wavread(binfile=datafile,(blocksize*(i-1)),(blocksize*i))},silent=TRUE)
+      if (length(P) > 1) {
+        if (nrow(P$rawxyz) < ((sf*ws*2)+1) & i == 1) {
+          P = c() ; switchoffLD = 1 #added 30-6-2012
+          cat("\nError: data too short for doing non-wear detection 1\n")		
+          filetooshort = TRUE
+        }
+      } else {
+        P = c()
+        if (i == 1) {
+          filecorrupt = TRUE
+        }
+        cat("\nEnd of file reached\n")
+      }
     } else if (mon == 2 & dformat == 1 & useRDA == FALSE) {
       if (length(selectdaysfile) > 0) { # code to only read fragments of the data (Millenium cohort)
         #===================================================================
@@ -394,9 +409,9 @@ g.getmeta = function(datafile,desiredtz = c(),windowsizes = c(5,900,3600),
             lengthheader = nrow(header)
             
           } else if (dformat == 3) {
-            starttime = P$timestamp
+            # starttime = P$timestamp # initially used, but apparently its is corrupted sometimes, so I am now using ICMTzTime
+            starttime = as.character(header[which(rownames(header) == "ICMTzTime"),1])
             lengthheader = nrow(header)
-            
           } else if (mon == 2 & dformat == 1) {
             if (length(desiredtz) > 0) {
               starttime = as.POSIXlt(P$page.timestamps[1],tz=desiredtz)
